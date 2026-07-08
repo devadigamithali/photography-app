@@ -10,14 +10,14 @@ export type InquiryStatus =
   | "completed"
   | "archived";
 
-export interface Profile {
+export type Profile = {
   id: string;
   notification_email: string;
   business_name: string | null;
   created_at: string;
 }
 
-export interface Album {
+export type Album = {
   id: string;
   title: string;
   slug: string;
@@ -28,7 +28,7 @@ export interface Album {
   updated_at: string;
 }
 
-export interface PortfolioPhoto {
+export type PortfolioPhoto = {
   id: string;
   album_id: string;
   storage_path: string;
@@ -37,7 +37,7 @@ export interface PortfolioPhoto {
   created_at: string;
 }
 
-export interface Inquiry {
+export type Inquiry = {
   id: string;
   name: string;
   email: string;
@@ -52,7 +52,7 @@ export interface Inquiry {
   updated_at: string;
 }
 
-export interface Booking {
+export type Booking = {
   id: string;
   inquiry_id: string | null;
   title: string;
@@ -64,7 +64,7 @@ export interface Booking {
   created_at: string;
 }
 
-export interface Gallery {
+export type Gallery = {
   id: string;
   client_name: string;
   client_email: string | null;
@@ -75,7 +75,7 @@ export interface Gallery {
   created_at: string;
 }
 
-export interface GalleryPhoto {
+export type GalleryPhoto = {
   id: string;
   gallery_id: string;
   storage_path: string;
@@ -84,7 +84,7 @@ export interface GalleryPhoto {
   created_at: string;
 }
 
-export interface PhotoSelection {
+export type PhotoSelection = {
   id: string;
   gallery_photo_id: string;
   gallery_id: string;
@@ -96,18 +96,20 @@ export interface PhotoSelection {
   updated_at: string;
 }
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
       profiles: {
         Row: Profile;
         Insert: Partial<Profile> & { notification_email: string };
         Update: Partial<Profile>;
+        Relationships: [];
       };
       albums: {
         Row: Album;
         Insert: Partial<Album> & { title: string; slug: string };
         Update: Partial<Album>;
+        Relationships: [];
       };
       portfolio_photos: {
         Row: PortfolioPhoto;
@@ -117,16 +119,19 @@ export interface Database {
           filename: string;
         };
         Update: Partial<PortfolioPhoto>;
+        Relationships: [];
       };
       inquiries: {
         Row: Inquiry;
         Insert: Partial<Inquiry> & { name: string; email: string };
         Update: Partial<Inquiry>;
+        Relationships: [];
       };
       bookings: {
         Row: Booking;
         Insert: Partial<Booking> & { title: string; event_date: string };
         Update: Partial<Booking>;
+        Relationships: [];
       };
       galleries: {
         Row: Gallery;
@@ -136,6 +141,7 @@ export interface Database {
           access_token: string;
         };
         Update: Partial<Gallery>;
+        Relationships: [];
       };
       gallery_photos: {
         Row: GalleryPhoto;
@@ -145,12 +151,16 @@ export interface Database {
           filename: string;
         };
         Update: Partial<GalleryPhoto>;
+        Relationships: [];
       };
       photo_selections: {
         Row: PhotoSelection;
         Insert: Partial<PhotoSelection> & { gallery_photo_id: string; gallery_id: string };
         Update: Partial<PhotoSelection>;
+        Relationships: [];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
   };
 }
