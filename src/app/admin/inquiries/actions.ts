@@ -4,6 +4,34 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/supabase/types";
 
+export async function createInquiry(input: {
+  name: string;
+  email: string;
+  phone?: string | null;
+  event_type?: string | null;
+  event_date?: string | null;
+  message?: string | null;
+}) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("inquiries")
+    .insert({
+      name: input.name,
+      email: input.email,
+      phone: input.phone || null,
+      event_type: input.event_type || null,
+      event_date: input.event_date || null,
+      message: input.message || null,
+      status: "new",
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/inquiries");
+  return data;
+}
+
 export async function moveInquiry(
   id: string,
   status: InquiryStatus,

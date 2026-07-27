@@ -25,7 +25,7 @@ export default async function AdminLayout({
   // double-check here per the plan, since proxy matchers can silently miss
   // routes on refactors.
   if (!user) {
-    redirect("/admin/login");
+    redirect("/");
   }
 
   return (

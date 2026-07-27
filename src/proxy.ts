@@ -5,8 +5,9 @@ import { NextResponse, type NextRequest } from "next/server";
 // convention and named export are deprecated). See
 // node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md
 //
-// Protects everything under /admin except /admin/login. Uses the
-// @supabase/ssr session-refresh pattern so the auth cookie stays valid.
+// Protects everything under /admin. Sign-in lives at the root `/` page.
+// Uses the @supabase/ssr session-refresh pattern so the auth cookie stays
+// valid.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -40,11 +41,8 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-  const isLoginPage = pathname === "/admin/login";
-
-  if (!user && !isLoginPage) {
-    const redirectUrl = new URL("/admin/login", request.url);
+  if (!user) {
+    const redirectUrl = new URL("/", request.url);
     return NextResponse.redirect(redirectUrl);
   }
 

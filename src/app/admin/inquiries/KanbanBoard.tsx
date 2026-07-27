@@ -32,6 +32,7 @@ import {
   updateInquiryNotes,
   createBookingFromInquiry,
   checkDateHasBooking,
+  createInquiry,
 } from "./actions";
 
 const COLUMNS: { status: InquiryStatus; label: string }[] = [
@@ -69,6 +70,15 @@ export function KanbanBoard({
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Inquiry | null>(null);
   const [bookingModal, setBookingModal] = useState<Inquiry | null>(null);
+  const [creating, setCreating] = useState(false);
+  const dragStartContainerRef = useRef<InquiryStatus | null>(null);
+
+  function handleInquiryCreated(inquiry: Inquiry) {
+    setColumns((prev) => ({
+      ...prev,
+      new: [...prev.new, inquiry],
+    }));
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -88,6 +98,7 @@ export function KanbanBoard({
 
   function handleDragStart(event: DragStartEvent) {
     setActiveId(String(event.active.id));
+    dragStartContainerRef.current = findContainer(String(event.active.id)) ?? null;
   }
 
   function handleDragOver(event: DragEndEvent) {
@@ -129,6 +140,12 @@ export function KanbanBoard({
     const overContainer = findContainer(String(over.id));
     if (!activeContainer || !overContainer) return;
 
+    // The card's true starting column, captured at drag start — by drag end,
+    // onDragOver has already relocated it in `columns` state for the live
+    // preview, so re-deriving "active container" here would just return
+    // `overContainer` again and mask every cross-column move.
+    const originalContainer = dragStartContainerRef.current ?? activeContainer;
+
     let finalColumns = columns;
 
     if (activeContainer === overContainer) {
@@ -155,12 +172,12 @@ export function KanbanBoard({
         const destIndex = destItems.findIndex((i) => i.id === active.id);
         await moveInquiry(String(active.id), overContainer, destIndex);
 
-        if (overContainer === "booked" && activeContainer !== "booked") {
+        if (overContainer === "booked" && originalContainer !== "booked") {
           setBookingModal({ ...movedItem, status: overContainer });
         }
       }
-      if (activeContainer !== overContainer) {
-        const sourceItems = finalColumns[activeContainer];
+      if (originalContainer !== overContainer) {
+        const sourceItems = finalColumns[originalContainer];
         await reorderInquiries(
           sourceItems.map((item, index) => ({ id: item.id, sort_order: index }))
         );
@@ -196,6 +213,9 @@ export function KanbanBoard({
 
   return (
     <div>
+      <div className="mb-4 flex justify-end">
+        <Button onClick={() => setCreating(true)}>+ Add inquiry</Button>
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -231,6 +251,13 @@ export function KanbanBoard({
         <BookingModal
           inquiry={bookingModal}
           onClose={() => setBookingModal(null)}
+        />
+      )}
+
+      {creating && (
+        <CreateInquiryModal
+          onClose={() => setCreating(false)}
+          onCreated={handleInquiryCreated}
         />
       )}
     </div>
@@ -480,6 +507,110 @@ function BookingModal({
           </Button>
           <Button onClick={handleConfirm} disabled={saving || !eventDate}>
             {saving ? "Saving..." : "Create booking"}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+function CreateInquiryModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (inquiry: Inquiry) => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [eventType, setEventType] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [message, setMessage] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleCreate() {
+    if (!name.trim() || !email.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const inquiry = await createInquiry({
+        name,
+        email,
+        phone,
+        event_type: eventType,
+        event_date: eventDate,
+        message,
+      });
+      onCreated(inquiry);
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create inquiry");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open onClose={onClose} title="Add inquiry" widthClassName="max-w-lg">
+      <div className="space-y-3">
+        <div>
+          <label className="mb-1 block text-sm font-medium">Name</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} autoFocus />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Email</label>
+          <Input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Phone (optional)
+          </label>
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Event type
+            </label>
+            <Input
+              value={eventType}
+              onChange={(e) => setEventType(e.target.value)}
+              placeholder="Wedding"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">
+              Event date
+            </label>
+            <Input
+              type="date"
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+            />
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Message (optional)
+          </label>
+          <Textarea rows={3} value={message} onChange={(e) => setMessage(e.target.value)} />
+        </div>
+        {error && <p className="text-sm text-red-600">{error}</p>}
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={saving || !name.trim() || !email.trim()}
+          >
+            {saving ? "Adding..." : "Add inquiry"}
           </Button>
         </div>
       </div>
