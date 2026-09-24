@@ -11,8 +11,8 @@ import { createClient } from "@supabase/supabase-js";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const ADMIN_EMAIL = "devadigamithali@gmail.com";
-const ADMIN_PASSWORD = "Mithali";
+ const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 if (!url || !serviceRoleKey) {
   console.error(
